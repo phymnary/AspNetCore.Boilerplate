@@ -93,35 +93,113 @@ partial class EndpointGenerator
         public static CompilationUnitSyntax GetCompilationUnitForController(
             HierarchyInfo hierarchyInfo,
             bool isStatic,
-            ImmutableArray<ExpressionStatementSyntax> mapEndpointExpressions
+            ImmutableArray<ExpressionStatementSyntax> mapNonConstructExpression,
+            ImmutableArray<ExpressionStatementSyntax> mapHasConstructExpression
         )
         {
+            var method = MethodDeclaration(
+                    PredefinedType(Token(SyntaxKind.VoidKeyword)),
+                    Identifier("MapEndpoints")
+                )
+                .AddModifiers(isStatic ? PublicStatic : Public)
+                .WithParameterList(
+                    ParameterList(
+                        SingletonSeparatedList(
+                            Parameter(Identifier("app"))
+                                .WithType(
+                                    IdentifierName(
+                                        "global::Microsoft.AspNetCore.Routing.IEndpointRouteBuilder"
+                                    )
+                                )
+                        )
+                    )
+                )
+                .AddBodyStatements(mapNonConstructExpression.ToArray<StatementSyntax>());
+
+            if (mapHasConstructExpression.Length > 0)
+            {
+                method = method
+                    .AddBodyStatements(
+                        LocalDeclarationStatement(
+                                VariableDeclaration(
+                                        AliasQualifiedName(
+                                            IdentifierName(Token(SyntaxKind.GlobalKeyword)),
+                                            IdentifierName(
+                                                "Microsoft.Extensions.DependencyInjection.IServiceScope"
+                                            )
+                                        )
+                                    )
+                                    .WithVariables(
+                                        SingletonSeparatedList(
+                                            VariableDeclarator(Identifier("scope"))
+                                                .WithInitializer(
+                                                    EqualsValueClause(
+                                                        InvocationExpression(
+                                                                MemberAccessExpression(
+                                                                    SyntaxKind.SimpleMemberAccessExpression,
+                                                                    AliasQualifiedName(
+                                                                        IdentifierName(
+                                                                            Token(
+                                                                                SyntaxKind.GlobalKeyword
+                                                                            )
+                                                                        ),
+                                                                        IdentifierName(
+                                                                            "Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions"
+                                                                        )
+                                                                    ),
+                                                                    IdentifierName("CreateScope")
+                                                                )
+                                                            )
+                                                            .AddArgumentListArguments(
+                                                                Argument(
+                                                                    MemberAccessExpression(
+                                                                        SyntaxKind.SimpleMemberAccessExpression,
+                                                                        IdentifierName("app"),
+                                                                        IdentifierName(
+                                                                            "ServiceProvider"
+                                                                        )
+                                                                    )
+                                                                )
+                                                            )
+                                                    )
+                                                )
+                                        )
+                                    )
+                            )
+                            .WithUsingKeyword(Token(SyntaxKind.UsingKeyword)),
+                        LocalDeclarationStatement(
+                            VariableDeclaration(
+                                    AliasQualifiedName(
+                                        IdentifierName(Token(SyntaxKind.GlobalKeyword)),
+                                        IdentifierName("System.IServiceProvider")
+                                    )
+                                )
+                                .WithVariables(
+                                    SingletonSeparatedList(
+                                        VariableDeclarator(Identifier("serviceProvider"))
+                                            .WithInitializer(
+                                                EqualsValueClause(
+                                                    MemberAccessExpression(
+                                                        SyntaxKind.SimpleMemberAccessExpression,
+                                                        IdentifierName("scope"),
+                                                        IdentifierName("ServiceProvider")
+                                                    )
+                                                )
+                                            )
+                                    )
+                                )
+                        )
+                    )
+                    .AddBodyStatements(mapHasConstructExpression.ToArray<StatementSyntax>());
+            }
+
             TypeDeclarationSyntax typeDeclarationSyntax = (
                 (ClassDeclarationSyntax)
                     hierarchyInfo
                         .Hierarchy[0]
                         .GetSyntax()
                         .AddModifiers(Token(SyntaxKind.PartialKeyword))
-            ).AddMembers(
-                MethodDeclaration(
-                        PredefinedType(Token(SyntaxKind.VoidKeyword)),
-                        Identifier("MapEndpoints")
-                    )
-                    .AddModifiers(isStatic ? PublicStatic : Public)
-                    .WithParameterList(
-                        ParameterList(
-                            SingletonSeparatedList(
-                                Parameter(Identifier("app"))
-                                    .WithType(
-                                        IdentifierName(
-                                            "global::Microsoft.AspNetCore.Routing.IEndpointRouteBuilder"
-                                        )
-                                    )
-                            )
-                        )
-                    )
-                    .AddBodyStatements(mapEndpointExpressions.ToArray<StatementSyntax>())
-            );
+            ).AddMembers(method);
 
             var hierarchySpan = hierarchyInfo.Hierarchy.AsSpan();
             foreach (var parentType in hierarchySpan.Slice(1))

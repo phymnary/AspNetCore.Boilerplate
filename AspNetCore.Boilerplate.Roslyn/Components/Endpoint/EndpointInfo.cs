@@ -9,6 +9,7 @@ internal record EndpointInfo(
     string HandleMethodName,
     string RoutePatternPropertyName,
     string BuildRouteMethodName,
+    bool HasConstructor,
     ImmutableArray<string> Namespaces,
     HierarchyInfo Hierarchy
 );

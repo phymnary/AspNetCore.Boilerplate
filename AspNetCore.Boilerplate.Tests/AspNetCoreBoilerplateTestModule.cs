@@ -1,7 +1,9 @@
 using AspNetCore.Boilerplate.Domain;
 using AspNetCore.Boilerplate.Extensions;
 using AspNetCore.Boilerplate.Tests.Auditing;
+using AspNetCore.Boilerplate.Tests.Auditing.PropertyChanges;
 using AspNetCore.Boilerplate.Tests.EntityFrameworkCore;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -30,8 +32,8 @@ public partial class AspNetCoreBoilerplateTestModule : IAspModule
         services
             .AddBoilerplateServices()
             .AddEfCoreServices<BookStoreDbContext>(configurator =>
-                configurator.AddPropertyChangeAudit<BookStoreDbContext, AppPropertyChangeAudit>(
-                    data => new AppPropertyChangeAudit
+                configurator.AddPropertyChangeAudit<BookStoreDbContext, TestingPropertyChangeAudit>(
+                    data => new TestingPropertyChangeAudit
                     {
                         EntityName = data.EntityName,
                         PropertyName = data.PropertyName,

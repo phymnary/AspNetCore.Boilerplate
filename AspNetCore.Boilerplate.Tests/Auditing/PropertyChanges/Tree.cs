@@ -2,7 +2,7 @@ using AspNetCore.Boilerplate.Domain;
 using AspNetCore.Boilerplate.Tests.Books;
 using Microsoft.EntityFrameworkCore;
 
-namespace AspNetCore.Boilerplate.Tests.Auditing.OwnedTests;
+namespace AspNetCore.Boilerplate.Tests.Auditing.PropertyChanges;
 
 internal class Tree : Entity<int>, IAuditable
 {

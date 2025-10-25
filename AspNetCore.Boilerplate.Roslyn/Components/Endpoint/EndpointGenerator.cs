@@ -4,6 +4,7 @@ using AspNetCore.Boilerplate.Roslyn.Extensions;
 using AspNetCore.Boilerplate.Roslyn.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using ZLinq;
 
 // ReSharper disable SuggestVarOrType_Elsewhere
 
@@ -73,15 +74,15 @@ public partial class EndpointGenerator : IIncrementalGenerator
 
         IncrementalValuesProvider<ControllerInfo> controllerHierarchies =
             context.SyntaxProvider.ForAttributeWithMetadataName(
-                $"{GeneratorConstant.LibNamespaceApi}.ApiControllersAttribute",
+                $"{GeneratorConstant.LibNamespaceApi}.ApiSchemaAttribute",
                 static (node, _) => node is ClassDeclarationSyntax,
                 static (ctx, _) =>
                 {
                     var classSymbol = (INamedTypeSymbol)ctx.TargetSymbol;
 
                     return new ControllerInfo(
-                        classSymbol.IsStatic,
-                        HierarchyInfo.From(classSymbol)
+                        HierarchyInfo.From(classSymbol),
+                        classSymbol.IsStatic
                     );
                 }
             );
@@ -136,14 +137,21 @@ public partial class EndpointGenerator : IIncrementalGenerator
             controllerWithEndpoints,
             static (src, item) =>
             {
-                var expressions = item
-                    .Endpoints.Select(Execute.GetMapEndpointExpression)
+                var nonConstructExpression = item
+                    .Endpoints.Where(endpoint => !endpoint.HasConstructor)
+                    .Select(Execute.GetMapEndpointExpression)
+                    .ToImmutableArray();
+
+                var hasConstructExpression = item
+                    .Endpoints.Where(endpoint => endpoint.HasConstructor)
+                    .Select(Execute.GetMapConstructedEndpointExpression)
                     .ToImmutableArray();
 
                 var compilationUnit = BuildSyntax.GetCompilationUnitForController(
                     item.Controller.Hierarchy,
                     item.Controller.IsStatic,
-                    expressions
+                    nonConstructExpression,
+                    hasConstructExpression
                 );
 
                 src.AddSource($"{item.Controller.Hierarchy.FilenameHint}.g.cs", compilationUnit);

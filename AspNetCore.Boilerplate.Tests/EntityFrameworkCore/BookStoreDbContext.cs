@@ -1,6 +1,6 @@
 using AspNetCore.Boilerplate.EntityFrameworkCore;
 using AspNetCore.Boilerplate.Tests.Auditing;
-using AspNetCore.Boilerplate.Tests.Auditing.OwnedTests;
+using AspNetCore.Boilerplate.Tests.Auditing.PropertyChanges;
 using AspNetCore.Boilerplate.Tests.Authors;
 using AspNetCore.Boilerplate.Tests.Books;
 using AspNetCore.Boilerplate.Tests.Categories;
@@ -20,7 +20,7 @@ internal class BookStoreDbContext(DbContextOptions<BookStoreDbContext> options) 
 
     public DbSet<Tree> Trees { get; init; }
 
-    public DbSet<AppPropertyChangeAudit> AppPropertyChangeAudits { get; init; }
+    public DbSet<TestingPropertyChangeAudit> TestingPropertyChangeAudits { get; init; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,6 +32,6 @@ internal class BookStoreDbContext(DbContextOptions<BookStoreDbContext> options) 
             .BuildEntity<BookAuthor>()
             .BuildEntity<Category>()
             .BuildEntity<Tree>()
-            .BuildEntity<AppPropertyChangeAudit>();
+            .BuildEntity<TestingPropertyChangeAudit>();
     }
 }

@@ -1,4 +1,4 @@
 namespace AspNetCore.Boilerplate.Api;
 
 [AttributeUsage(AttributeTargets.Class)]
-public class ApiControllersAttribute : Attribute;
+public class ApiSchemaAttribute : Attribute;

@@ -2,7 +2,10 @@ using AspNetCore.Boilerplate.Api;
 using AspNetCore.Boilerplate.EntityFrameworkCore;
 using AspNetCore.Boilerplate.Tests.Books;
 using AspNetCore.Boilerplate.Tests.Categories;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AspNetCore.Boilerplate.Tests.EntityFrameworkCore;
 

@@ -132,6 +132,7 @@ public partial class EndpointGenerator
                 "HandleAsync",
                 hasRoutePatternProperty ? "RoutePattern" : string.Empty,
                 hasMethod ? "BuildRoute" : string.Empty,
+                symbol.Constructors.Any(constructor => constructor.Parameters.Length > 0),
                 hierarchy.Namespace.Split('.').ToImmutableArray(),
                 hierarchy
             );
@@ -279,6 +280,42 @@ public partial class EndpointGenerator
                     )
                     .WithArgumentList(
                         ArgumentList(SingletonSeparatedList(Argument(IdentifierName("app"))))
+                    )
+            );
+        }
+
+        public static ExpressionStatementSyntax GetMapConstructedEndpointExpression(
+            EndpointInfo endpoint
+        )
+        {
+            return ExpressionStatement(
+                InvocationExpression(
+                        MemberAccessExpression(
+                            SyntaxKind.SimpleMemberAccessExpression,
+                            IdentifierName(
+                                $"{GeneratorConstant.Global}AspNetCore.Boilerplate.Api.Extensions.EndpointRouteBuilderExtensions"
+                            ),
+                            GenericName("MapEndpoint")
+                                .WithTypeArgumentList(
+                                    TypeArgumentList(
+                                        SingletonSeparatedList<TypeSyntax>(
+                                            IdentifierName(endpoint.TypeName)
+                                        )
+                                    )
+                                )
+                        )
+                    )
+                    .WithArgumentList(
+                        ArgumentList(
+                            SeparatedList<ArgumentSyntax>(
+                                new SyntaxNodeOrToken[]
+                                {
+                                    Argument(IdentifierName("app")),
+                                    Token(SyntaxKind.CommaToken),
+                                    Argument(IdentifierName("serviceProvider")),
+                                }
+                            )
+                        )
                     )
             );
         }

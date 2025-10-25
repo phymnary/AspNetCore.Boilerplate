@@ -1,18 +1,16 @@
 using AspNetCore.Boilerplate.Api;
-using AspNetCore.Boilerplate.Domain;
 using AspNetCore.Boilerplate.Domain.Auditing;
 using AspNetCore.Boilerplate.EntityFrameworkCore.Interceptors;
 using AspNetCore.Boilerplate.EntityFrameworkCore.Interceptors.Trackers;
-using AspNetCore.Boilerplate.Tests.Auditing.OwnedTests;
 using AspNetCore.Boilerplate.Tests.Authors;
 using AspNetCore.Boilerplate.Tests.Books;
 using AspNetCore.Boilerplate.Tests.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
-namespace AspNetCore.Boilerplate.Tests.Auditing;
+namespace AspNetCore.Boilerplate.Tests.Auditing.PropertyChanges;
 
-public class AuditingMetadataTests
+public class EntityPropertyChangeTrackerTests
 {
     [Fact]
     public async Task audit_tree()
@@ -26,14 +24,14 @@ public class AuditingMetadataTests
         var metadata = new AuditingMetadata();
         var changeTracker = new EntityPropertyChangeTracker<
             BookStoreDbContext,
-            AppPropertyChangeAudit
+            TestingPropertyChangeAudit
         >(
             dbContext,
             new HttpContextCurrentUser(),
             metadata,
-            new AuditingEntityMapper<PropertyChangeAudit, AppPropertyChangeAudit>
+            new AuditingEntityMapper<PropertyChangeAudit, TestingPropertyChangeAudit>
             {
-                Map = data => new AppPropertyChangeAudit
+                Map = data => new TestingPropertyChangeAudit
                 {
                     EntityName = data.EntityName,
                     PropertyName = data.PropertyName,
@@ -76,11 +74,10 @@ public class AuditingMetadataTests
                 new DbContextEventData(null!, null!, dbContext),
                 default
             );
-            var changes = dbContext.ChangeTracker.Entries<AppPropertyChangeAudit>().ToArray();
+            var changes = dbContext.ChangeTracker.Entries<TestingPropertyChangeAudit>().ToArray();
 
-            Assert.Equal(4, changes.Length);
             await dbContext.SaveChangesAsync();
-            dbContext.ChangeTracker.Clear();
+            Assert.Equal(4, changes.Length);
         }
     }
 }
