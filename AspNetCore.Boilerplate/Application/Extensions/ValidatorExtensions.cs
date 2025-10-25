@@ -1,4 +1,5 @@
-using AspNetCore.Boilerplate.Domain;
+using AspNetCore.Boilerplate.Api;
+using AspNetCore.Boilerplate.Exceptions;
 using FluentValidation;
 
 namespace AspNetCore.Boilerplate.Application.Extensions;
@@ -15,6 +16,15 @@ public static class ValidatorExtensions
         var result = await validator.ValidateAsync(entity, token);
 
         if (!result.IsValid)
-            throw new EntityValidationException(message) { Failures = result.Errors };
+            throw new EntityValidationException(message)
+            {
+                Failures = result
+                    .Errors.Select(failure => new AspValidationErrorDetail
+                    {
+                        Property = failure.PropertyName,
+                        Message = failure.ErrorMessage,
+                    })
+                    .ToArray(),
+            };
     }
 }

@@ -2,9 +2,13 @@ using System.ComponentModel.DataAnnotations;
 
 namespace AspNetCore.Boilerplate.Domain;
 
-public interface IEntity;
+public interface IEntity
+{
+    object Key();
+}
 
 public abstract class Entity<TKey> : IEntity
+    where TKey : IComparable, IComparable<TKey>, IEquatable<TKey>
 {
     protected Entity() { }
 
@@ -15,4 +19,9 @@ public abstract class Entity<TKey> : IEntity
 
     [Key]
     public TKey Id { get; protected init; } = default!;
+
+    public object Key()
+    {
+        return Id;
+    }
 }

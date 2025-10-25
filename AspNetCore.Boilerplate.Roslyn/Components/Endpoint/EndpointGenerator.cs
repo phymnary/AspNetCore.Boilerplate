@@ -16,7 +16,7 @@ public partial class EndpointGenerator : IIncrementalGenerator
     {
         IncrementalValuesProvider<GroupConfigRouteMethodInfo> groupPatternInfos = context
             .SyntaxProvider.ForAttributeWithMetadataName(
-                $"{GeneratorConstant.ApiNamespace}.RoutePatternAttribute",
+                $"{GeneratorConstant.LibNamespaceApi}.RoutePatternAttribute",
                 static (node, _) =>
                     node is MethodDeclarationSyntax { Parent: ClassDeclarationSyntax },
                 static (ctx, _) =>
@@ -33,7 +33,7 @@ public partial class EndpointGenerator : IIncrementalGenerator
 
         IncrementalValuesProvider<GroupConfigRouteMethodInfo> groupBuilderInfos = context
             .SyntaxProvider.ForAttributeWithMetadataName(
-                $"{GeneratorConstant.ApiNamespace}.RouteBuilderAttribute",
+                $"{GeneratorConstant.LibNamespaceApi}.RouteBuilderAttribute",
                 static (node, _) =>
                     node is MethodDeclarationSyntax { Parent: ClassDeclarationSyntax },
                 static (ctx, _) =>
@@ -50,12 +50,11 @@ public partial class EndpointGenerator : IIncrementalGenerator
 
         IncrementalValuesProvider<EndpointInfo> endpointHierarchies = context
             .SyntaxProvider.ForAttributeWithMetadataName(
-                $"{GeneratorConstant.ApiNamespace}.EndpointAttribute",
+                $"{GeneratorConstant.LibNamespaceApi}.EndpointAttribute",
                 static (node, _) => node is ClassDeclarationSyntax,
                 static (ctx, token) =>
                 {
                     var typeSymbol = (INamedTypeSymbol)ctx.TargetSymbol;
-                    var classSyntax = (ClassDeclarationSyntax)ctx.TargetNode;
 
                     if (ctx.Attributes.FirstOrDefault() is not { } attributeData)
                         return null;
@@ -74,7 +73,7 @@ public partial class EndpointGenerator : IIncrementalGenerator
 
         IncrementalValuesProvider<ControllerInfo> controllerHierarchies =
             context.SyntaxProvider.ForAttributeWithMetadataName(
-                $"{GeneratorConstant.ApiNamespace}.ControllerAttribute",
+                $"{GeneratorConstant.LibNamespaceApi}.ApiControllersAttribute",
                 static (node, _) => node is ClassDeclarationSyntax,
                 static (ctx, _) =>
                 {

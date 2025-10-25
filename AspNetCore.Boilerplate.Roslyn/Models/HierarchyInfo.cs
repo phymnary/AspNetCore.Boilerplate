@@ -5,7 +5,7 @@ using static Microsoft.CodeAnalysis.SymbolDisplayTypeQualificationStyle;
 
 namespace AspNetCore.Boilerplate.Roslyn.Models;
 
-public sealed partial record HierarchyInfo(
+public sealed record HierarchyInfo(
     string FilenameHint,
     string MetadataName,
     string Namespace,

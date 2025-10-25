@@ -1,11 +1,10 @@
-using System.Text.Json;
 using AspNetCore.Boilerplate.Api;
-using AspNetCore.Boilerplate.Books;
-using AspNetCore.Boilerplate.Categories;
-using AspNetCore.Boilerplate.EntityFrameworkCore.Interceptors;
+using AspNetCore.Boilerplate.EntityFrameworkCore;
+using AspNetCore.Boilerplate.Tests.Books;
+using AspNetCore.Boilerplate.Tests.Categories;
 using Microsoft.EntityFrameworkCore;
 
-namespace AspNetCore.Boilerplate.EntityFrameworkCore;
+namespace AspNetCore.Boilerplate.Tests.EntityFrameworkCore;
 
 public class EfRepositoryTests
 {
@@ -18,14 +17,7 @@ public class EfRepositoryTests
         var dbContext = new BookStoreDbContext(options);
         var repository = new BookRepository(
             dbContext,
-            new EfRepositoryAddons(
-                [
-                    new AuditSaveChangesInterceptor<BookStoreDbContext>(
-                        dbContext,
-                        new HttpContextCurrentUser()
-                    ),
-                ]
-            ),
+            new EfRepositoryAddons(new HttpContextCancellationTokenProvider()),
             new BookRepositoryOptions(new BookValidator())
         );
 
@@ -34,10 +26,7 @@ public class EfRepositoryTests
         book.Category = new Category { Name = "Children Books" };
         await repository.UpdateAsync(book);
 
-        book.Name = "Harry Potter ch. 1";
+        book.Name = "Harry Potter 1: Harry Potter and the Philosopher's Stone ";
         await repository.UpdateAsync(book);
-
-
-        var dto = await repository.ReadonlyQuery(entity => entity.Id == 1).ToListAsync();
     }
 }

@@ -8,6 +8,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspNetCore.Boilerplate.Rosl
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspNetCore.Boilerplate.Tests", "AspNetCore.Boilerplate.Tests\AspNetCore.Boilerplate.Tests.csproj", "{66391B86-6168-4391-B937-416789EF8262}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{92EB7AD9-961F-4005-8298-00A1A841E7A3}"
+	ProjectSection(SolutionItems) = preProject
+		Metadata.props = Metadata.props
+		.csharpierignore = .csharpierignore
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

@@ -1,6 +1,6 @@
 using AspNetCore.Boilerplate.Domain;
 
-namespace AspNetCore.Boilerplate.Authors;
+namespace AspNetCore.Boilerplate.Tests.Authors;
 
 public class Author : Entity<int>
 {

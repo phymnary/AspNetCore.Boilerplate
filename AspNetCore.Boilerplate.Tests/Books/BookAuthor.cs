@@ -1,11 +1,11 @@
-using AspNetCore.Boilerplate.Authors;
 using AspNetCore.Boilerplate.Domain;
+using AspNetCore.Boilerplate.Tests.Authors;
 
-namespace AspNetCore.Boilerplate.Books;
+namespace AspNetCore.Boilerplate.Tests.Books;
 
 public class BookAuthor : Entity<int>
 {
-    public required Book Book { get; init; }
+    public Book Book { get; init; } = null!;
 
-    public required Author Author { get; init; }
+    public Author Author { get; init; } = null!;
 }

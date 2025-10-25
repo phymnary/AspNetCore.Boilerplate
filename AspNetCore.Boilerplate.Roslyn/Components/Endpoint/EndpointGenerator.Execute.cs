@@ -45,7 +45,7 @@ public partial class EndpointGenerator
 
             if (
                 containingType.HasAttributeWithFullyQualifiedMetadataName(
-                    $"{GeneratorConstant.ApiNamespace}.EndpointAttribute"
+                    $"{GeneratorConstant.LibNamespaceApi}.EndpointAttribute"
                 )
             )
             {

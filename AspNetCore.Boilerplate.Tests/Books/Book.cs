@@ -1,8 +1,7 @@
-using AspNetCore.Boilerplate.Authors;
-using AspNetCore.Boilerplate.Categories;
 using AspNetCore.Boilerplate.Domain;
+using AspNetCore.Boilerplate.Tests.Categories;
 
-namespace AspNetCore.Boilerplate.Books;
+namespace AspNetCore.Boilerplate.Tests.Books;
 
 public class Book : Entity<int>, IAuditable
 {
@@ -12,8 +11,8 @@ public class Book : Entity<int>, IAuditable
 
     public Category? Category { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
     public Guid? CreatedById { get; set; }
-    public DateTime? UpdatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
     public Guid? UpdatedById { get; set; }
 }

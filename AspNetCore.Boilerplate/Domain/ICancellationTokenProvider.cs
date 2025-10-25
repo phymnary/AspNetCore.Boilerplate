@@ -2,5 +2,7 @@ namespace AspNetCore.Boilerplate.Domain;
 
 public interface ICancellationTokenProvider
 {
-    CancellationToken Get();
+    void Set(CancellationToken cancellationToken);
+
+    CancellationToken GetRequestAborted(CancellationToken cancellationToken);
 }

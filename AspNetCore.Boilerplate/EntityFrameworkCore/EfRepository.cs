@@ -2,42 +2,40 @@ using System.Linq.Expressions;
 using AspNetCore.Boilerplate.Application.Extensions;
 using AspNetCore.Boilerplate.Domain;
 using AspNetCore.Boilerplate.Domain.Pagination;
-using AspNetCore.Boilerplate.Domain.ReadonlyQueries;
+using AspNetCore.Boilerplate.Domain.ReadonlyQuery;
 using Microsoft.EntityFrameworkCore;
 
 namespace AspNetCore.Boilerplate.EntityFrameworkCore;
 
 public abstract class EfRepository<TDbContext, TEntity>(
-    TDbContext context,
-    EfRepositoryAddons? addons = null,
-    IRepositoryOptions<TEntity>? options = null
+    TDbContext dbContext,
+    EfRepositoryAddons addons,
+    IRepositoryOptions<TEntity> options
 ) : IRepository<TEntity>
     where TEntity : class, IEntity
     where TDbContext : DbContext
 {
-    private DbSet<TEntity> DbSet { get; } = context.Set<TEntity>();
+    public DbSet<TEntity> DbSet { get; } = dbContext.Set<TEntity>();
 
     private static EntityQueryOptions<TEntity>? _fallbackQueryOptions;
-
     private readonly EntityQueryOptions<TEntity> _queryOptions =
-        options?.QueryOptions ?? (_fallbackQueryOptions ??= new EntityQueryOptions<TEntity>());
+        options.QueryOptions ?? (_fallbackQueryOptions ??= new EntityQueryOptions<TEntity>());
 
     private static EntityUpdateOptions<TEntity>? _fallbackUpdateOptions;
-
     private readonly EntityUpdateOptions<TEntity> _updateOptions =
-        options?.UpdateOptions ?? (_fallbackUpdateOptions ??= new EntityUpdateOptions<TEntity>());
+        options.UpdateOptions ?? (_fallbackUpdateOptions ??= new EntityUpdateOptions<TEntity>());
 
-    private CancellationToken GetRequestAborted(CancellationToken token)
+    protected CancellationToken GetRequestAborted(CancellationToken cancellationToken)
     {
-        return token == default ? addons?.CancellationTokenProvider.Get() ?? default : token;
+        return addons.CancellationTokenProvider.GetRequestAborted(cancellationToken);
     }
 
-    private Task ValidateAsync(TEntity entity, CancellationToken token)
+    private Task ValidateAsync(TEntity entity, CancellationToken ct)
     {
-        return options?.Validator?.ValidateAndThrowOnErrorsAsync(
+        return options.Validator?.ValidateAndThrowOnErrorsAsync(
                 entity,
                 $"Fail when validate {typeof(TEntity).Name}",
-                token
+                ct
             ) ?? Task.CompletedTask;
     }
 
@@ -48,11 +46,12 @@ public abstract class EfRepository<TDbContext, TEntity>(
     )
     {
         var ct = GetRequestAborted(cancellationToken);
+
+        await ValidateAsync(entity, ct);
         var inserted = DbSet.Add(entity).Entity;
 
-        await ValidateAsync(inserted, ct);
         if (autoSave)
-            await SaveChangesAsync(ct);
+            await dbContext.SaveChangesAsync(ct);
 
         return inserted;
     }
@@ -61,20 +60,26 @@ public abstract class EfRepository<TDbContext, TEntity>(
         TEntity entity,
         Expression<Func<TEntity, bool>> on,
         bool autoSave = true,
-        bool isIncludeDetails = false,
+        bool canIncludeDetails = false,
         CancellationToken cancellationToken = default
     )
     {
         var ct = GetRequestAborted(cancellationToken);
-        var upsert = await Queryable(isIncludeDetails).FirstOrDefaultAsync(on, ct);
-        if (upsert is not null)
-            _updateOptions.Run(entity, upsert);
-        else
-            upsert = await InsertAsync(entity, false, ct);
+        var upsert = await Queryable(canIncludeDetails).FirstOrDefaultAsync(on, ct);
 
-        await ValidateAsync(upsert, ct);
+        if (upsert is not null)
+        {
+            _updateOptions.Run(entity, upsert);
+            await ValidateAsync(upsert, ct);
+        }
+        else
+        {
+            await ValidateAsync(entity, ct);
+            upsert = await InsertAsync(entity, false, ct);
+        }
+
         if (autoSave)
-            await SaveChangesAsync(ct);
+            await dbContext.SaveChangesAsync(ct);
 
         return upsert;
     }
@@ -86,39 +91,31 @@ public abstract class EfRepository<TDbContext, TEntity>(
     {
         var ct = GetRequestAborted(cancellationToken);
         await ValidateAsync(entity, ct);
-        return await SaveChangesAsync(ct);
-    }
 
-    private async Task<int> SaveChangesAsync(CancellationToken cancellationToken)
-    {
-        if (addons?.SaveChangesInterceptors is not null)
-            foreach (var interceptor in addons.SaveChangesInterceptors)
-                await interceptor.RunAsync(cancellationToken);
-
-        return await context.SaveChangesAsync(cancellationToken);
+        return await dbContext.SaveChangesAsync(ct);
     }
 
     public async Task<TEntity?> FindAsync(
         Expression<Func<TEntity, bool>> predicate,
-        bool isIncludeDetails = false,
+        bool canIncludeDetails = false,
         CancellationToken cancellationToken = default
     )
     {
         var ct = GetRequestAborted(cancellationToken);
-        return await Queryable(isIncludeDetails).FirstOrDefaultAsync(predicate, ct);
+        return await Queryable(canIncludeDetails).FirstOrDefaultAsync(predicate, ct);
     }
 
     public async Task<List<TEntity>> QueryAsync(
         Expression<Func<TEntity, bool>>? predicate = null,
-        bool isIncludeDetails = false,
+        bool canIncludeDetails = false,
         CancellationToken cancellationToken = default
     )
     {
         var ct = GetRequestAborted(cancellationToken);
         if (predicate == null)
-            return await Queryable(isIncludeDetails).ToListAsync(ct);
+            return await Queryable(canIncludeDetails).ToListAsync(ct);
 
-        return await Queryable(isIncludeDetails).Where(predicate).ToListAsync(ct);
+        return await Queryable(canIncludeDetails).Where(predicate).ToListAsync(ct);
     }
 
     public async Task<bool> AnyAsync(
@@ -141,18 +138,20 @@ public abstract class EfRepository<TDbContext, TEntity>(
 
     public IPaginateOrderBuilding<TEntity> Paginate(
         Func<IQueryable<TEntity>, IQueryable<TEntity>>? filter = null,
+        bool? canIncludeDetails = null,
         CancellationToken cancellationToken = default
     )
     {
         var ct = GetRequestAborted(cancellationToken);
-        var queryable = filter is not null ? filter(DbSet) : DbSet;
+        var dbSet = canIncludeDetails is { } include ? Queryable(include) : DbSet;
+        var queryable = filter is not null ? filter(dbSet) : dbSet;
         return new PaginateQueryBuilder<TEntity>(() => queryable.CountAsync(ct), queryable);
     }
 
-    public IQueryable<TEntity> Queryable(bool isIncludeDetails = false)
+    public IQueryable<TEntity> Queryable(bool canIncludeDetails = false)
     {
         var queryable = _queryOptions.DefaultIncludeQuery.Invoke(DbSet);
-        if (isIncludeDetails)
+        if (canIncludeDetails)
             queryable = _queryOptions.IncludeDetailsQuery.Invoke(queryable);
 
         return queryable;
@@ -160,13 +159,16 @@ public abstract class EfRepository<TDbContext, TEntity>(
 
     public ReadonlyQuery<TEntity> ReadonlyQuery(
         Expression<Func<TEntity, bool>> predicate,
-        bool? isIncludeDetails = null
+        bool? canIncludeDetails = null
     )
     {
-        var queryable = isIncludeDetails is { } useIncludeOptions
+        var queryable = canIncludeDetails is { } useIncludeOptions
             ? Queryable(useIncludeOptions)
             : DbSet;
 
-        return new ReadonlyQuery<TEntity>(queryable.Where(predicate).AsNoTracking());
+        return new ReadonlyQuery<TEntity>(
+            queryable.Where(predicate).AsNoTracking(),
+            addons.CancellationTokenProvider
+        );
     }
 }

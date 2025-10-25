@@ -1,12 +1,13 @@
 using AspNetCore.Boilerplate.Domain;
 using AspNetCore.Boilerplate.EntityFrameworkCore;
+using AspNetCore.Boilerplate.Tests.EntityFrameworkCore;
 
-namespace AspNetCore.Boilerplate.Books;
+namespace AspNetCore.Boilerplate.Tests.Books;
 
 public interface IBookRepository : IRepository<Book>;
 
-[Dependency(Lifetime.Scoped)]
-public class BookRepository(
+[Service(Lifetime.Scoped)]
+internal class BookRepository(
     BookStoreDbContext context,
     EfRepositoryAddons addons,
     IRepositoryOptions<Book> options

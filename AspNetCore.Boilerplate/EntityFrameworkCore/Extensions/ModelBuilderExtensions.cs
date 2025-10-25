@@ -11,13 +11,14 @@ public static class ModelBuilderExtensions
     public static ModelBuilder BuildEntity<TEntity>(
         this ModelBuilder modelBuilder,
         Action<EntityTypeBuilder<TEntity>>? additionalConfigure = null,
+        string? schema = null,
         Expression<Func<Guid>>? tenantIdProperty = null
     )
         where TEntity : class, IEntity
     {
         modelBuilder.Entity<TEntity>(b =>
         {
-            b.ToTable(typeof(TEntity).Name);
+            b.ToTable(typeof(TEntity).Name, schema);
 
             if (CreateQueryFilter<TEntity>(tenantIdProperty) is { } queryFilter)
                 b.HasQueryFilter(queryFilter);

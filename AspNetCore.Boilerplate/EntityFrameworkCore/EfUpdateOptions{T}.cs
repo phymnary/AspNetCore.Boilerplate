@@ -6,13 +6,15 @@ using static System.Linq.Expressions.Expression;
 
 namespace AspNetCore.Boilerplate.EntityFrameworkCore;
 
+/// <summary>
+/// Create function to map all required properties with setter, can be overridden with object initialization
+/// </summary>
+/// <typeparam name="TEntity"></typeparam>
 public class EntityUpdateOptions<TEntity>
     where TEntity : class, IEntity
 {
-    public EntityUpdateOptions(params string[] ignores)
+    public EntityUpdateOptions()
     {
-        ignores = [.. ignores, .. SpecialEntityProperties.DefaultMappingIgnores];
-
         var from = Parameter(typeof(TEntity), "from");
         var to = Parameter(typeof(TEntity), "to");
 
@@ -20,7 +22,7 @@ public class EntityUpdateOptions<TEntity>
 
         foreach (var propertyInfo in typeof(TEntity).GetProperties())
         {
-            if (ignores.Contains(propertyInfo.Name) || propertyInfo.Name.EndsWith("Id"))
+            if (SpecialEntityProperties.DefaultUpdateIgnores.Contains(propertyInfo.Name))
                 continue;
 
             if (

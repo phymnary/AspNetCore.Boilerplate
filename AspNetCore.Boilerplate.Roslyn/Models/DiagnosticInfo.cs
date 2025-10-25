@@ -21,7 +21,7 @@ internal sealed record DiagnosticInfo(
         return Diagnostic.Create(
             Descriptor,
             SyntaxTree is not null ? Location.Create(SyntaxTree, TextSpan) : null,
-            Arguments.ToArray()
+            Arguments.Cast<object>().ToArray()
         );
     }
 
@@ -44,7 +44,7 @@ internal sealed record DiagnosticInfo(
             descriptor,
             location.SourceTree,
             location.SourceSpan,
-            args.Select(static arg => arg.ToString()).ToImmutableArray()!
+            args.Select(static arg => arg.ToString()).ToImmutableArray()
         );
     }
 
@@ -67,7 +67,7 @@ internal sealed record DiagnosticInfo(
             descriptor,
             location.SourceTree,
             location.SourceSpan,
-            args.Select(static arg => arg.ToString()).ToImmutableArray()!
+            args.Select(static arg => arg.ToString()).ToImmutableArray()
         );
     }
 

@@ -32,7 +32,7 @@ partial class EndpointGenerator
                         .GetSyntax()
                         .AddModifiers(Token(SyntaxKind.PartialKeyword))
                         .AddBaseListTypes(
-                            SimpleBaseType(IdentifierName($"{Global}{ApiNamespace}.IEndpoint"))
+                            SimpleBaseType(IdentifierName($"{Global}{LibNamespaceApi}.IEndpoint"))
                         )
             ).AddMembers(
                 MethodDeclaration(

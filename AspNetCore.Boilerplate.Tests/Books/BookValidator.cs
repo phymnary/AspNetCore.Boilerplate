@@ -1,8 +1,8 @@
 using FluentValidation;
 
-namespace AspNetCore.Boilerplate.Books;
+namespace AspNetCore.Boilerplate.Tests.Books;
 
-[Dependency(Lifetime.Singleton)]
+[Service(Lifetime.Singleton)]
 public class BookValidator : AbstractValidator<Book>
 {
     public BookValidator()

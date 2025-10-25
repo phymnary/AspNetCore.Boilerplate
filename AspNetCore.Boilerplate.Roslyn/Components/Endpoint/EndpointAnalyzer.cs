@@ -28,7 +28,7 @@ public class EndpointAnalyzer : DiagnosticAnalyzer
         if (
             context.ContainingSymbol is not INamedTypeSymbol typeSymbol
             || !typeSymbol.HasAttributeWithFullyQualifiedMetadataName(
-                $"{GeneratorConstant.ApiNamespace}.EndpointAttribute"
+                $"{GeneratorConstant.LibNamespaceApi}.EndpointAttribute"
             )
         )
             return;

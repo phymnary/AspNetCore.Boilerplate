@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Mime;
 using System.Text.Json;
-using AspNetCore.Boilerplate.Domain;
+using AspNetCore.Boilerplate.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +9,7 @@ using ValidationFailure = FluentValidation.Results.ValidationFailure;
 
 namespace AspNetCore.Boilerplate.Api;
 
-internal class AspExceptionHandler : IExceptionHandler
+public class AspExceptionHandler : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
@@ -19,13 +19,16 @@ internal class AspExceptionHandler : IExceptionHandler
     {
         HttpStatusCode status;
         string? errorCode = null;
-        List<ValidationFailure>? validationErrors = null;
+        string? details = null;
+        IEnumerable<AspValidationErrorDetail>? validationErrors = null;
 
         switch (exception)
         {
             case IBusinessException businessException:
                 status = businessException.StatusCode;
                 errorCode = businessException.ErrorCode;
+                if (businessException is EntityValidationException validationException)
+                    validationErrors = validationException.Failures;
                 break;
             case DbUpdateException:
                 status = HttpStatusCode.FailedDependency;
@@ -39,22 +42,17 @@ internal class AspExceptionHandler : IExceptionHandler
         httpContext.Response.ContentType = MediaTypeNames.Application.Json;
         await httpContext.Response.WriteAsync(
             JsonSerializer.Serialize(
-                new AspErrorMessage
+                new AspErrorDto
                 {
-                    Error = new AspErrorDto
+                    Error = new AspErrorMessage
                     {
+                        Code = errorCode,
                         Message = exception.Message,
-                        Details = errorCode,
-                        ValidationErrors = validationErrors?.Select(
-                            failure => new AspValidationErrorMessageDto
-                            {
-                                Message = failure.ErrorMessage,
-                                Property = failure.PropertyName,
-                            }
-                        ),
+                        Detail = details,
+                        InvalidParameters = validationErrors,
                     },
                 },
-                AspJsonSerializerContext.Default.AspErrorMessage
+                AspBoilerplateJsonSerializerContext.Default.AspErrorDto
             ),
             cancellationToken
         );

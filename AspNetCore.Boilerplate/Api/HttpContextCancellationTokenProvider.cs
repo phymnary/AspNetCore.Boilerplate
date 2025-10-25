@@ -11,8 +11,8 @@ internal class HttpContextCancellationTokenProvider : ICancellationTokenProvider
         _token = token;
     }
 
-    public CancellationToken Get()
+    public CancellationToken GetRequestAborted(CancellationToken cancellationToken)
     {
-        return _token;
+        return cancellationToken == CancellationToken.None ? _token : cancellationToken;
     }
 }

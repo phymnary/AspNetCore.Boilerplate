@@ -1,13 +1,14 @@
-using AspNetCore.Boilerplate.Authors;
-using AspNetCore.Boilerplate.Books;
-using AspNetCore.Boilerplate.Categories;
-using AspNetCore.Boilerplate.Domain;
-using AspNetCore.Boilerplate.Domain.Auditing;
+using AspNetCore.Boilerplate.EntityFrameworkCore;
+using AspNetCore.Boilerplate.Tests.Auditing;
+using AspNetCore.Boilerplate.Tests.Auditing.OwnedTests;
+using AspNetCore.Boilerplate.Tests.Authors;
+using AspNetCore.Boilerplate.Tests.Books;
+using AspNetCore.Boilerplate.Tests.Categories;
 using Microsoft.EntityFrameworkCore;
 
-namespace AspNetCore.Boilerplate.EntityFrameworkCore;
+namespace AspNetCore.Boilerplate.Tests.EntityFrameworkCore;
 
-public class BookStoreDbContext(DbContextOptions<BookStoreDbContext> options) : DbContext(options)
+internal class BookStoreDbContext(DbContextOptions<BookStoreDbContext> options) : DbContext(options)
 {
     public DbSet<Book> Books { get; init; }
 
@@ -16,6 +17,10 @@ public class BookStoreDbContext(DbContextOptions<BookStoreDbContext> options) : 
     public DbSet<BookAuthor> BookAuthors { get; init; }
 
     public DbSet<Category> Categories { get; init; }
+
+    public DbSet<Tree> Trees { get; init; }
+
+    public DbSet<AppPropertyChangeAudit> AppPropertyChangeAudits { get; init; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,6 +31,7 @@ public class BookStoreDbContext(DbContextOptions<BookStoreDbContext> options) : 
             .BuildEntity<Author>()
             .BuildEntity<BookAuthor>()
             .BuildEntity<Category>()
-            .BuildEntity<EntityPropertyChange>();
+            .BuildEntity<Tree>()
+            .BuildEntity<AppPropertyChangeAudit>();
     }
 }

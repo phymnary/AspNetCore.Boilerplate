@@ -1,6 +1,6 @@
 using AspNetCore.Boilerplate.Domain;
 
-namespace AspNetCore.Boilerplate.Categories;
+namespace AspNetCore.Boilerplate.Tests.Categories;
 
 public class Category : Entity<int>
 {

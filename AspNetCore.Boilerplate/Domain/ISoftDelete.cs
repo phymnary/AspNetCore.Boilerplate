@@ -4,5 +4,11 @@ public interface ISoftDelete
 {
     Guid? DeletedById { get; set; }
 
-    DateTime? DeletedAt { get; set; }
+    DateTimeOffset? DeletedAt { get; set; }
+
+    public void Undo()
+    {
+        DeletedAt = null;
+        DeletedById = null;
+    }
 }

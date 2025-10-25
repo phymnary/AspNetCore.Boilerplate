@@ -28,7 +28,8 @@ internal class PaginateQueryBuilder<T>(Func<Task<int>> countFunc, IQueryable<T> 
 
     public IPaginateResult<T> Page(int page, int perPage)
     {
-        _queryable = _queryable.Skip((page - 1) * perPage);
+        if (page > 0)
+            _queryable = _queryable.Skip((page - 1) * perPage);
 
         if (perPage != int.MaxValue)
             _queryable = _queryable.Take(perPage);
@@ -46,8 +47,13 @@ internal class PaginateQueryBuilder<T>(Func<Task<int>> countFunc, IQueryable<T> 
         return new PaginateResult<T>
         {
             Count = await countFunc(),
-            Data = _queryable.AsAsyncEnumerable(),
+            Items = _queryable.AsAsyncEnumerable(),
         };
+    }
+
+    public IAsyncEnumerable<T> Build()
+    {
+        return _queryable.AsAsyncEnumerable();
     }
 }
 
@@ -70,4 +76,6 @@ public interface IPaginateResult<T>
     IPaginateResult<TTarget> Select<TTarget>(Expression<Func<T, TTarget>> selector);
 
     Task<PaginateResult<T>> BuildAsync();
+
+    IAsyncEnumerable<T> Build();
 }

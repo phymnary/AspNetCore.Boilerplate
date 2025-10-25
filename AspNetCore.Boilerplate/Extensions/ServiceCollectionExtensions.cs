@@ -1,7 +1,7 @@
 ﻿using AspNetCore.Boilerplate.Api;
 using AspNetCore.Boilerplate.Domain;
+using AspNetCore.Boilerplate.Domain.Auditing;
 using AspNetCore.Boilerplate.EntityFrameworkCore;
-using AspNetCore.Boilerplate.EntityFrameworkCore.Interceptors;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,27 +11,15 @@ namespace AspNetCore.Boilerplate.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddModule<TModule>(this IServiceCollection services)
-        where TModule : IModule, new()
-    {
-        var module = new TModule();
-        module.ConfigureServices(services);
-
-        if (module is IAutoRegister autoRegister)
-            autoRegister.AddDependencies(services);
-
-        return services;
-    }
-
     public static IServiceCollection ConfigureSection<TConfig>(
         this IServiceCollection services,
         Action<TConfig>? setupWithConfig = null
     )
-        where TConfig : class, IConfigSection
+        where TConfig : class, IAppSettingsSection
     {
         var configurations = services.GetConfiguration();
         var configureSection = configurations.GetSection(TConfig.Section);
-        services.Configure<TConfig>(configureSection);
+        services = services.Configure<TConfig>(configureSection);
         setupWithConfig?.Invoke(configureSection.Get<TConfig>()!);
 
         return services;
@@ -44,50 +32,59 @@ public static class ServiceCollectionExtensions
     /// <returns>A reference to this instance after the operation has completed.</returns>
     public static IServiceCollection AddBoilerplateServices(this IServiceCollection services)
     {
-        services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
-        services.AddScoped<ICurrentTenant, HttpContextCurrentTenant>();
-        services.AddScoped<EfRepositoryAddons>();
-        services.AddScoped<ICancellationTokenProvider, HttpContextCancellationTokenProvider>();
-        services.AddProblemDetails().AddExceptionHandler<AspExceptionHandler>();
+        return services
+            .AddScoped<ICurrentUser, HttpContextCurrentUser>()
+            .AddScoped<ICurrentTenant, HttpContextCurrentTenant>()
+            .AddScoped<EfRepositoryAddons>()
+            .AddScoped<ICancellationTokenProvider, HttpContextCancellationTokenProvider>()
+            .AddProblemDetails()
+            .AddExceptionHandler<AspExceptionHandler>();
+    }
 
-        return services;
+    public static IServiceCollection AddEfCoreServices<TDbContext>(
+        this IServiceCollection services,
+        Action<EfServicesConfigurator<TDbContext>> configure
+    )
+        where TDbContext : DbContext
+    {
+        var configurator = new EfServicesConfigurator<TDbContext>(services);
+        configure(configurator);
+
+        return UnderlayAddEfServices(configurator);
     }
 
     public static IServiceCollection AddEfCoreServices<TDbContext>(this IServiceCollection services)
         where TDbContext : DbContext
     {
-        if (DomainFeatureFlags.IsAuditingEnable)
-            services.AddScoped<
-                IEfSaveChangesInterceptor,
-                AuditSaveChangesInterceptor<TDbContext>
-            >();
+        var configurator = new EfServicesConfigurator<TDbContext>(services);
 
-        if (DomainFeatureFlags.IsMultiTenantEnable)
-            services.AddScoped<
-                IEfSaveChangesInterceptor,
-                MultiTenantSaveChangesInterceptor<TDbContext>
-            >();
-
-        return services;
+        return UnderlayAddEfServices<TDbContext>(configurator);
     }
 
-    public static IConfiguration GetConfiguration(this IServiceCollection services)
+    private static IServiceCollection UnderlayAddEfServices<TDbContext>(
+        EfServicesConfigurator<TDbContext> configurator
+    )
+        where TDbContext : DbContext
+    {
+        return configurator
+            .Build()
+            .AddScoped<IDbFunctionProvider, DbFunctionProvider<TDbContext>>();
+    }
+
+    internal static IConfiguration GetConfiguration(this IServiceCollection services)
     {
         return services.GetConfigurationOrNull()
             ?? throw new Exception(
-                "Could not find an implementation of "
-                    + typeof(IConfiguration).AssemblyQualifiedName
-                    + " in the service collection."
+                $"Could not find an implementation of {typeof(IConfiguration).AssemblyQualifiedName} in the service collection."
             );
     }
 
     private static IConfiguration? GetConfigurationOrNull(this IServiceCollection services)
     {
         var hostBuilderContext = services.GetSingletonInstanceOrNull<HostBuilderContext>();
-        if (hostBuilderContext?.Configuration != null)
-            return hostBuilderContext.Configuration as IConfigurationRoot;
-
-        return services.GetSingletonInstanceOrNull<IConfiguration>();
+        return hostBuilderContext?.Configuration != null
+            ? hostBuilderContext.Configuration
+            : services.GetSingletonInstanceOrNull<IConfiguration>();
     }
 
     private static T? GetSingletonInstanceOrNull<T>(this IServiceCollection services)

@@ -27,7 +27,6 @@ public static class EquatableArray
 /// <remarks>
 ///     Creates a new <see cref="EquatableArray{T}" /> instance.
 /// </remarks>
-/// <param name="array">The input <see cref="ImmutableArray{T}" /> to wrap.</param>
 public readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnumerable<T>
     where T : IEquatable<T>
 {
