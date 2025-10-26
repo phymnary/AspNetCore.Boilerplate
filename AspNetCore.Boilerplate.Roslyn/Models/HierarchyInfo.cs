@@ -41,7 +41,10 @@ public sealed record HierarchyInfo(
     }
 
     public string FilenameHint { get; } = FilenameHint;
+
     public string MetadataName { get; } = MetadataName;
+
     public string Namespace { get; } = Namespace;
+
     public EquatableArray<TypeInfo> Hierarchy { get; } = Hierarchy;
 }

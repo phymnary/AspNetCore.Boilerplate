@@ -1,4 +1,5 @@
 using AspNetCore.Boilerplate.Api;
+using Microsoft.AspNetCore.Mvc;
 
 namespace AspNetCore.Boilerplate.Tests.Api;
 
@@ -7,8 +8,9 @@ public partial class PostIncremental
 {
     private static string RoutePattern => "/incremental";
 
-    private static Task<int> HandleAsync()
+    private static Task HandleAsync([FromBody] int added)
     {
-        return Task.FromResult(1);
+        Result.GetCurrentResult.Value += added;
+        return Task.CompletedTask;
     }
 }

@@ -4,9 +4,6 @@ using AspNetCore.Boilerplate.Roslyn.Extensions;
 using AspNetCore.Boilerplate.Roslyn.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using ZLinq;
-
-// ReSharper disable SuggestVarOrType_Elsewhere
 
 namespace AspNetCore.Boilerplate.Roslyn.Components.Endpoint;
 
@@ -21,14 +18,12 @@ public partial class EndpointGenerator : IIncrementalGenerator
                 static (node, _) =>
                     node is MethodDeclarationSyntax { Parent: ClassDeclarationSyntax },
                 static (ctx, _) =>
-                {
                     Execute.TryGetGroupConfigRouteMethodInfo(
                         (IMethodSymbol)ctx.TargetSymbol,
                         out var info
-                    );
-
-                    return info;
-                }
+                    )
+                        ? info
+                        : null
             )
             .Where(it => it is not null)!;
 
@@ -60,14 +55,14 @@ public partial class EndpointGenerator : IIncrementalGenerator
                     if (ctx.Attributes.FirstOrDefault() is not { } attributeData)
                         return null;
 
-                    var isSuccess = Execute.TryGetEndpointInfo(
+                    return Execute.TryGetEndpointInfo(
                         typeSymbol,
                         attributeData,
                         token,
                         out var info
-                    );
-
-                    return isSuccess ? info : null;
+                    )
+                        ? info
+                        : null;
                 }
             )
             .Where(it => it is not null)!;

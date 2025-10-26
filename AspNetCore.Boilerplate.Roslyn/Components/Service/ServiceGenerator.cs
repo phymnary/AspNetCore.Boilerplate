@@ -21,18 +21,16 @@ public partial class ServiceGenerator : IIncrementalGenerator
                 static (node, _) => node is ClassDeclarationSyntax,
                 static (ctx, token) =>
                 {
-                    if (
-                        !ctx.SemanticModel.Compilation.HasLanguageVersionAtLeastEqualTo(
-                            LanguageVersion.CSharp8
-                        )
-                    )
-                        return null;
-
                     var typeSymbol = (INamedTypeSymbol)ctx.TargetSymbol;
 
-                    Execute.TryGetDependencyInfo(typeSymbol, ctx.Attributes, token, out var info);
-
-                    return info;
+                    return Execute.TryGetDependencyInfo(
+                        typeSymbol,
+                        ctx.Attributes,
+                        token,
+                        out var info
+                    )
+                        ? info
+                        : null;
                 }
             )
             .Where(info => info is not null)!;
@@ -42,22 +40,20 @@ public partial class ServiceGenerator : IIncrementalGenerator
                 $"{GeneratorConstant.LibNamespace}.AutoAttribute",
                 static (node, _) => node is ClassDeclarationSyntax,
                 static (ctx, token) =>
-                {
-                    _ = Execute.TryGetModuleHierarchy(
+                    Execute.TryGetModuleHierarchy(
                         (ClassDeclarationSyntax)ctx.TargetNode,
                         (INamedTypeSymbol)ctx.TargetSymbol,
                         token,
                         out var info
-                    );
-
-                    return info;
-                }
+                    )
+                        ? info
+                        : null
             )
             .Where(module => module is not null)!;
 
         IncrementalValuesProvider<(
             HierarchyInfo Hierarchy,
-            ImmutableArray<ServiceInfo> Info
+            ImmutableArray<ServiceInfo> Infos
         )> grouped = moduleHierarchies.Combine(dependencyInfos.Collect());
 
         context.RegisterSourceOutput(
@@ -65,7 +61,7 @@ public partial class ServiceGenerator : IIncrementalGenerator
             static (src, item) =>
             {
                 var registerExpressions = item
-                    .Info.Select(Execute.GetRegistrationExpression)
+                    .Infos.Select(Execute.GetRegistrationExpression)
                     .ToImmutableArray();
 
                 var compilationUnit = BuildSyntax.GetCompilationUnitForDependency(

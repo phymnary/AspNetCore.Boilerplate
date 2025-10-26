@@ -4,6 +4,19 @@ namespace AspNetCore.Boilerplate.Api.Extensions;
 
 public static class EndpointExtensions
 {
+    private static readonly string[] HttpMethodPostfixes =
+    [
+        ".POST",
+        ".GET",
+        ".DELETE",
+        ".PATCH",
+        ".PUT",
+        ".HEAD",
+        ".OPTIONS",
+        ".TRACE",
+        ".CONNECT",
+    ];
+
     public static string GetRoutePatternBasedOnNamespace<TEndpoint>(
         this TEndpoint _,
         string root,
@@ -13,18 +26,14 @@ public static class EndpointExtensions
     {
         var ns = typeof(TEndpoint).Namespace!.StripPrefix(root);
 
-        ns = ns.StripPostfix(".POST")
-            .StripPostfix(".GET")
-            .StripPostfix(".DELETE")
-            .StripPostfix(".PATCH")
-            .StripPostfix(".PUT")
-            .StripPostfix(".HEAD")
-            .StripPostfix(".OPTIONS")
-            .StripPostfix(".TRACE")
-            .StripPostfix(".CONNECT");
+        foreach (var postfix in HttpMethodPostfixes)
+        {
+            if (ns.TryStripPostfix(postfix, out ns))
+                break;
+        }
 
         var routeName = string.Join(
-            "/",
+            '/',
             ns.Split(".", StringSplitOptions.RemoveEmptyEntries)
                 .Select(static item =>
                 {
@@ -43,5 +52,17 @@ public static class EndpointExtensions
         );
 
         return $"{prefix}/{routeName}";
+    }
+
+    private static bool TryStripPostfix(this string str, string postFix, out string result)
+    {
+        if (str.EndsWith(postFix))
+        {
+            result = str[..^postFix.Length];
+            return true;
+        }
+
+        result = str;
+        return false;
     }
 }

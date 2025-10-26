@@ -29,7 +29,7 @@ public class ApiSchemaGeneratorTest
                 }
 
                 [global::AspNetCore.Boilerplate.Api.RouteBuilder]
-                 public static void BuildRoute(Microsoft.AspNetCore.Builder.RouteHandlerBuilder builder)
+                public static void BuildRoute(Microsoft.AspNetCore.Builder.RouteHandlerBuilder builder)
                 {
                     builder.RequireAuthorization();
                 }
