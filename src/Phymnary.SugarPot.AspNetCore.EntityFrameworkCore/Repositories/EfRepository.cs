@@ -22,7 +22,7 @@ public abstract class EfRepository<TDbContext, TEntity>(
     private readonly EntityUpdateOptions<TEntity> _updateOptions =
         options.UpdateOptions ?? (_fallbackUpdateOptions ??= new EntityUpdateOptions<TEntity>());
 
-    private readonly DbSet<TEntity> _dbSet = dbContext.Set<TEntity>();
+    protected DbSet<TEntity> DbSet { get; } = dbContext.Set<TEntity>();
 
     protected CancellationToken GetRequestAborted(CancellationToken cancellationToken)
     {
@@ -31,7 +31,7 @@ public abstract class EfRepository<TDbContext, TEntity>(
 
     protected IQueryable<TEntity> Queryable(bool canIncludeDetails = false)
     {
-        var queryable = _queryOptions.DefaultIncludeQuery.Invoke(_dbSet);
+        var queryable = _queryOptions.DefaultIncludeQuery.Invoke(DbSet);
         if (canIncludeDetails)
             queryable = _queryOptions.IncludeDetailsQuery.Invoke(queryable);
 
@@ -49,15 +49,7 @@ public abstract class EfRepository<TDbContext, TEntity>(
                 $"Entity {typeof(TEntity).Name} failed validation at domain level"
             )
             {
-                Failures =
-                [
-                    .. result.Errors.Select(e => new EntityValidationFailureDetail()
-                    {
-                        Property = e.Property,
-                        Message = e.Message,
-                        Code = e.Code,
-                    }),
-                ],
+                Failures = [.. result.Errors],
             };
     }
 
@@ -89,7 +81,7 @@ public abstract class EfRepository<TDbContext, TEntity>(
 
         await ValidateAsync(entity, ct);
 
-        var inserted = _dbSet.Add(entity).Entity;
+        var inserted = DbSet.Add(entity).Entity;
 
         if (autoSave)
             await SaveChangesAsync(ct);
@@ -166,7 +158,7 @@ public abstract class EfRepository<TDbContext, TEntity>(
     public async Task<bool> AnyAsync(CancellationToken cancellationToken = default)
     {
         var ct = GetRequestAborted(cancellationToken);
-        return await _dbSet.AnyAsync(ct);
+        return await DbSet.AnyAsync(ct);
     }
 
     public async Task<bool> AnyAsync(
@@ -175,13 +167,13 @@ public abstract class EfRepository<TDbContext, TEntity>(
     )
     {
         var ct = GetRequestAborted(cancellationToken);
-        return await _dbSet.AnyAsync(predicate, ct);
+        return await DbSet.AnyAsync(predicate, ct);
     }
 
     public async Task<int> CountAsync(CancellationToken cancellationToken = default)
     {
         var ct = GetRequestAborted(cancellationToken);
-        return await _dbSet.CountAsync(ct);
+        return await DbSet.CountAsync(ct);
     }
 
     public async Task<int> CountAsync(
@@ -190,7 +182,7 @@ public abstract class EfRepository<TDbContext, TEntity>(
     )
     {
         var ct = GetRequestAborted(cancellationToken);
-        return await _dbSet.CountAsync(predicate, ct);
+        return await DbSet.CountAsync(predicate, ct);
     }
 
     public IAdvanceOrderBuilding<TEntity> AdvanceQuery(
@@ -198,7 +190,7 @@ public abstract class EfRepository<TDbContext, TEntity>(
         bool? canIncludeDetails = null
     )
     {
-        var dbSet = canIncludeDetails is { } include ? Queryable(include) : _dbSet;
+        var dbSet = canIncludeDetails is { } include ? Queryable(include) : DbSet;
         var queryable = filter is not null ? filter(dbSet) : dbSet;
 
         return new AdvanceQueryBuilder<TEntity>(

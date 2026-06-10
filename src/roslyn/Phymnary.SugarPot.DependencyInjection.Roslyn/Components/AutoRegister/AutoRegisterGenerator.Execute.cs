@@ -58,7 +58,7 @@ public partial class AutoRegisterGenerator
             return true;
         }
 
-        public static bool TryGetModuleHierarchy(
+        public static bool TryGetAutoHierarchy(
             ClassDeclarationSyntax nodeSyntax,
             INamedTypeSymbol symbol,
             CancellationToken _,

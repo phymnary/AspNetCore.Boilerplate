@@ -32,12 +32,12 @@ public partial class AutoRegisterGenerator : IIncrementalGenerator
             )
             .Where(info => info is not null)!;
 
-        IncrementalValuesProvider<HierarchyInfo> moduleHierarchies = context
+        IncrementalValuesProvider<HierarchyInfo> autoHierarchies = context
             .SyntaxProvider.ForAttributeWithMetadataName(
                 $"{GeneratorConstant.LibNamespace}.AutoAttribute",
                 static (node, _) => node is ClassDeclarationSyntax,
                 static (ctx, token) =>
-                    Execute.TryGetModuleHierarchy(
+                    Execute.TryGetAutoHierarchy(
                         (ClassDeclarationSyntax)ctx.TargetNode,
                         (INamedTypeSymbol)ctx.TargetSymbol,
                         token,
@@ -46,12 +46,12 @@ public partial class AutoRegisterGenerator : IIncrementalGenerator
                         ? info
                         : null
             )
-            .Where(module => module is not null)!;
+            .Where(auto => auto is not null)!;
 
         IncrementalValuesProvider<(
             HierarchyInfo Hierarchy,
             ImmutableArray<RegisterServiceInfo> Infos
-        )> grouped = moduleHierarchies.Combine(dependencyInfos.Collect());
+        )> grouped = autoHierarchies.Combine(dependencyInfos.Collect());
 
         context.RegisterSourceOutput(
             grouped,

@@ -7,10 +7,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Phymnary.SugarPot.AspNetCore.Application\Phymnary.SugarPot.AspNetCore.Application.csproj" />
-    <ProjectReference Include="..\roslyn\Phymnary.SugarPot.AspNetCore.Api.Roslyn\Phymnary.SugarPot.AspNetCore.Api.Roslyn.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </ProjectReference>
+    <ProjectReference 
+      Include="..\roslyn\Phymnary.SugarPot.AspNetCore.Api.Roslyn\Phymnary.SugarPot.AspNetCore.Api.Roslyn.csproj" 
+      ReferenceOutputAssembly="false"
+      PrivateAssets="all"
+    />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
