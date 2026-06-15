@@ -22,6 +22,8 @@ public class EfServicesConfigurator<TDbContext>
     internal EfServicesConfigurator(IServiceCollection services)
     {
         _services = services;
+        // Order so that OnAttachedInterceptor is always the first interceptor to be executed, ensuring that entities are properly attached before any other interceptor runs.
+        _services.AddScoped<IInterceptor, OnAttachedInterceptor>();
     }
 
     private void RegisterAuditing()

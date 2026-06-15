@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Phymnary.SugarPot.DependencyInjection.Roslyn.Constants;
@@ -47,7 +46,9 @@ partial class AutoRegisterGenerator
                 BaseList(
                     SingletonSeparatedList<BaseTypeSyntax>(
                         SimpleBaseType(
-                            IdentifierName(GeneratorConstant.LibNamespace + ".IAutoRegister")
+                            IdentifierName(
+                                "global::" + GeneratorConstant.LibNamespace + ".IAutoRegister"
+                            )
                         )
                     )
                 )

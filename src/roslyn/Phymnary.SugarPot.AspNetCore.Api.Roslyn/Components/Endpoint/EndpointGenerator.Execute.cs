@@ -12,7 +12,7 @@ namespace Phymnary.SugarPot.AspNetCore.Api.Roslyn.Components.Endpoint;
 public partial class EndpointGenerator
 {
     private static readonly string[] Methods =
-    {
+    [
         "Get",
         "Put",
         "Post",
@@ -22,11 +22,9 @@ public partial class EndpointGenerator
         "Trace",
         "Patch",
         "Connect",
-    };
+    ];
 
-    private static readonly string[] CompareMethods = Methods
-        .Select(it => "." + it.ToLower())
-        .ToArray();
+    private static readonly string[] CompareMethods = [.. Methods.Select(it => "." + it.ToLower())];
 
     private static class Execute
     {
@@ -86,7 +84,7 @@ public partial class EndpointGenerator
             if (attribute.ConstructorArguments.Length > 0)
             {
                 methodName = attribute.ConstructorArguments[0].ToCSharpString();
-                methodName = methodName.Substring(methodName.LastIndexOf('.') + 1);
+                methodName = methodName[(methodName.LastIndexOf('.') + 1)..];
             }
             else if (
                 Methods.FirstOrDefault(it => symbol.Name.StartsWith(it)) is { } methodInTypeName

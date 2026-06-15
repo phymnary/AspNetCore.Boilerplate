@@ -9,9 +9,9 @@ namespace Phymnary.SugarPot.AspNetCore;
 public class ModelBuilderHelper(ModelBuilder builder)
 {
 #if NET10_0_OR_GREATER
-    public const string SoftDelelteQueryFilterName = "SoftDelete";
+    public const string SoftDelelteQueryFilterName = "EFCore.Boilerplate.SoftDelete";
 
-    public const string MultiTenancyQueryFilterName = "MultiTenancy";
+    public const string MultiTenancyQueryFilterName = "EFCore.Boilerplate.MultiTenancy";
 #endif
 
     private ModelBuilder _builder = builder;

@@ -20,6 +20,7 @@ public static class ServiceProviderExtensions
                 ? abortedToken.Get(default)
                 : null,
         };
+
         return provider.GetRequiredService<IScopeBuilder>().Initialize(context);
     }
 }

@@ -26,6 +26,7 @@ public static class ServiceCollectionExtensions
         return configurator
             .Build()
             .AddScoped<IDbFunctionProvider, DbFunctionProvider<TDbContext>>()
+            .AddScoped<EfDbStateManager>()
             .AddScoped<EfRepositoryAddons>();
     }
 }

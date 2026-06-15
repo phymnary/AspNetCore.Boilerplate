@@ -9,37 +9,19 @@
 	  <WarningsAsErrors>nullable;</WarningsAsErrors>
 
     <EnableDynamicLoading>true</EnableDynamicLoading>
-    <IncludeBuildOutput>false</IncludeBuildOutput>
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="PolySharp">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
-    <PackageReference Include="Phymnary.SugarPot.RoslynComponents" GeneratePathProperty="true" PrivateAssets="all" />
-  </ItemGroup>
-
   <PropertyGroup>
-    <GetTargetPathDependsOn>$(GetTargetPathDependsOn);GetDependencyTargetPaths</GetTargetPathDependsOn>
+    <PolySharpExcludeGeneratedTypes>
+      System.Runtime.CompilerServices.ModuleInitializerAttribute;
+    </PolySharpExcludeGeneratedTypes>
   </PropertyGroup>
-
-  <Target Name="GetDependencyTargetPaths">
-    <ItemGroup>
-      <TargetPathWithTargetPlatformMoniker Include="$(PKGPhymnary_SugarPot_RoslynComponents)\lib\netstandard2.0\Phymnary.SugarPot.RoslynComponents.dll" IncludeRuntimeDependency="false" />
-    </ItemGroup>
-  </Target>
-
+  
   <ItemGroup>
-    <!-- Package the generator in the analyzer directory of the nuget package -->
-    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <PackageReference Include="Phymnary.SugarPot.RoslynComponents" />
+    <PackageReference Include="SourceGenerator.Foundations" />
   </ItemGroup>
 
 </Project>
