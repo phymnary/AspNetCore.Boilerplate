@@ -21,6 +21,7 @@ public class OnAttachedInterceptor : SaveChangesInterceptor
         )
         {
             entry.State = Microsoft.EntityFrameworkCore.EntityState.Added;
+            entry.Entity.DomainStatus.IsAdded = false;
         }
 
         return base.SavingChangesAsync(eventData, result, cancellationToken);
