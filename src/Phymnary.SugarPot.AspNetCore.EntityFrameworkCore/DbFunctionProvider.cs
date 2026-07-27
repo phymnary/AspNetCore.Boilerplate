@@ -75,10 +75,7 @@ internal class DbFunctionProvider<TDbContext>(
             {
                 var strategy = dbContext.Database.CreateExecutionStrategy();
                 await strategy.ExecuteInTransactionAsync(
-                    async aborted =>
-                    {
-                        await operation(aborted);
-                    },
+                    aborted => operation(aborted),
                     verifySucceeded,
                     ct
                 );

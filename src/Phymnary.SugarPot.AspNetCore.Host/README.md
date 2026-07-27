@@ -1,70 +1,70 @@
 # Phymnary.SugarPot.AspNetCore.Host
 
-Host-level bootstrapping helpers for SugarPot ASP.NET Core applications.
+Host bootstrapping utilities for SugarPot ASP.NET Core applications.
 
-This project provides host/runtime extensions used by application entry points, with a focus on standardized configuration loading and a small set of helpers to streamline app startup.
+This package currently provides a focused configuration extension to keep startup behavior consistent across services.
 
-## Features
+## What this package provides
 
-- ConfigurationExtensions.AddDefaults(...) for conventional configuration sources
-- Integration helpers for WebApplication and Generic Host setup
-- Designed to work with SugarPot API and EF Core packages
+- `ConfigurationExtensions.AddDefaults(IConfigurationBuilder builder, string env)`
+
+This extension adds configuration sources in the following order:
+
+1. `appsettings.json` (required)
+2. `appsettings.{env}.json` (optional)
+3. `appsettings.{env}.user.json` (optional)
+4. Environment variables
+
+Because later providers override earlier ones, environment variables remain the final override layer.
 
 ## Installation
 
-`dotnet add package Phymnary.SugarPot.AspNetCore.Host`
+```bash
+dotnet add package Phymnary.SugarPot.AspNetCore.Host
+```
 
-## Configuration Defaults
+## Usage
 
-AddDefaults(this IConfigurationBuilder builder, string env) adds configuration sources in this order:
-
-1. appsettings.json (required)
-2. appsettings.{env}.json (optional)
-3. appsettings.{env}.user.json (optional)
-4. environment variables
-
-This ordering allows environment-specific and per-developer overrides while preserving environment variables as the last override.
-
-## Usage Example
+### WebApplication
 
 ```csharp
 using Phymnary.SugarPot.AspNetCore.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration
-    .AddDefaults(builder.Environment.EnvironmentName);
+builder.Configuration.AddDefaults(builder.Environment.EnvironmentName);
 ```
 
-## Why use this
+### Generic Host
 
-- Keeps configuration bootstrapping consistent across services
-- Supports environment-specific and user-local overrides
-- Preserves standard ASP.NET Core environment variable behavior
+```csharp
+using Microsoft.Extensions.Hosting;
+using Phymnary.SugarPot.AspNetCore.Extensions;
 
-## Related Packages
+var builder = Host.CreateApplicationBuilder(args);
 
-This host project is intended to be used together with:
+builder.Configuration.AddDefaults(builder.Environment.EnvironmentName);
+```
+
+## Why use it
+
+- Standardizes configuration loading across services
+- Supports environment-specific and user-local override files
+- Preserves common ASP.NET Core environment variable override behavior
+
+## Related packages
 
 - Phymnary.SugarPot.AspNetCore.Api
 - Phymnary.SugarPot.AspNetCore.EntityFrameworkCore
 
 ## Target frameworks
 
-This package targets multiple TFMs used in the solution. Typical targets include:
-
-- net8.0
-- net9.0
-- net10.0
-
-Check the project file for exact TFMs.
-
----
+Target frameworks are managed by project and solution build configuration.
 
 ## Contributing
 
-Contributions, bug reports and feature requests are welcome. Please open issues or pull requests on the repository.
+Issues and pull requests are welcome.
 
 ## License
 
-See the repository root for license information.
+See the repository root for license details.

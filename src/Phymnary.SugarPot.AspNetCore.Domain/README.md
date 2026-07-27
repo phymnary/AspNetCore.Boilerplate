@@ -1,84 +1,178 @@
 # Phymnary.SugarPot.AspNetCore.Domain
 
-Domain contracts and primitives shared across the SugarPot ASP.NET Core stacks.
+Shared domain contracts and primitives for SugarPot ASP.NET Core stacks.
 
-This package contains entity abstractions, repository contracts, validation contracts, auditing and multi-tenancy interfaces, runtime context contracts, and domain exception interfaces. It is intentionally framework-agnostic — concrete implementations belong in infrastructure packages.
+This project contains contracts only (interfaces, attributes, DTO-like primitives, and exception types). It does not provide persistence, transport, or host-specific runtime implementations.
 
-## What this package provides
+## Package scope
 
-- Entity model primitives:
-  - `IEntity`
-  - `Entity<TKey>`
-  - `EntityDomainStatus`
-  - `ISoftDelete`
-- Repository contracts:
-  - `IRepository<TEntity>`
-  - `IRepository<TEntity, TKey>`
-  - advanced query interfaces in `Repositories.AdvanceQueries`
-  - transaction abstraction in `IQueryTransaction`
-- Validation contracts:
-  - `IEntityValidator<TEntity>`
-  - `EntityValidationResult`
-  - `EntityValidationFailureDetail`
-- Auditing contracts and metadata helpers:
-  - `IAuditable`
-  - `AuditingAttribute`
-  - `DisabledAuditingAttribute`
-  - `PropertyChangeAudit`
-- Multi-tenancy contracts:
-  - `IMultiTenant`
-  - `ICurrentTenant`
-- Runtime/context contracts:
-  - `ICurrentUser`
-  - `IRunAt`
-  - `IAbortedToken`
-  - `IScopeBuilder`
-  - `IDbFunctionProvider`
-- Domain exception contracts:
-  - `IDomainException`
-  - `IBusinessException`
-  - domain exception types under `Exceptions`
+The root namespace is:
+
+`Phymnary.SugarPot.AspNetCore`
+
+Main groups:
+
+- Domain/runtime context contracts
+- Entity and validation primitives
+- Repository and advanced query contracts
+- Auditing contracts and metadata helpers
+- Multi-tenancy and security context contracts
+- Domain/business exception abstractions
+
+## Contracts by area
+
+### Runtime and scope contracts
+
+- `IAbortedToken`
+  - `CancellationToken Get(CancellationToken cancellationToken)`
+- `IRunAt`
+  - `DateTimeOffset Value { get; }`
+- `IScopeBuilder`
+  - `AsyncServiceScope Initialize(ScopeContext context)`
+- `ScopeContext`
+  - `CurrentUserId`, `CurrentTenantId`, `RequestAborted`
+- `IDbFunctionProvider`
+  - `BeginTransactionAsync(...)`
+  - `UseResilientStrategyAsync(...)`
+  - `UseResilientStrategyWithTransactionAsync(...)`
+
+### Entity contracts
+
+- `IEntity`
+  - exposes `EntityDomainStatus DomainStatus`
+- `Entity<TKey>`
+  - base class with `[Key] TKey Id { get; protected init; }`
+- `EntityDomainStatus`
+  - `IsAdded`, `IsSoftDeleted`, `OnAttached()`, `SoftDelete()`
+- `ISoftDelete`
+  - `DeletedById`, `DeletedAt`, and default `Delete()` implementation that flags domain status
+
+### Validation contracts
+
+- `IEntityValidator<TEntity>`
+  - `ValueTask<EntityValidationResult> ValidateAsync(...)`
+- `EntityValidationResult`
+  - `IsValid`, `Errors`, plus static `Valid`
+- `EntityValidationFailureDetail`
+  - `Property`, `Message`, optional `Code`
+
+### Repository contracts
+
+- `IRepository<TEntity>`
+  - write methods: `InsertAsync`, `UpsertAsync`, `UpdateAsync`, `Delete`
+  - read methods: `FindAsync`, `QueryAsync`, `AnyAsync`, `CountAsync`
+  - advanced query entry point: `AdvanceQuery(...)`
+- `IRepository<TEntity, TKey>`
+  - adds `GetAsync(TKey id, ...)`
+- `IQueryTransaction`
+  - transaction lifecycle and savepoint-related API
+
+### Advanced query contracts
+
+- `IAdvanceOrderBuilding<T>`
+- `IAdvancePageBuilding<T>`
+- `IAdvanceSelectableBuilding<T>`
+- `IAdvanceQueryBuilder<T>`
+- `PaginateResult<TEntity>`
+
+The flow is designed as a staged builder:
+
+1. Order (`OrderBy` / `OrderByDescending`)
+2. Page (`Pick`)
+3. Optional projection (`Select`)
+4. Execute (`PaginateAsync` or `Build`)
+
+### Auditing contracts
+
+- `IAuditable`
+  - audit identity (`GetAuditKey`) and created/updated fields
+- `IPropertyChangeAudit`
+  - immutable shape for property change records
+- `AuditingAttribute`
+  - class-level include list of auditable properties
+- `DisabledAuditingAttribute`
+  - class/property-level opt-out
+- `EntityPropertyAuditingMetadata`
+  - computes if a property can be audited via `CanAudit(...)`
+- `AuditingEntityMapper<TConcrete, TImplement>`
+  - mapping hook via `Func<TConcrete, TImplement>`
+- `TrackBy`
+  - `Domain` or `Database`
+
+### Multi-tenancy and security contracts
+
+- `IMultiTenant`
+  - `Guid TenantId { get; set; }`
+- `ICurrentTenant`
+  - `Guid? Id { get; }`
+- `ICurrentUser`
+  - `Guid? Id { get; }`
+
+### Exception contracts and types
+
+- `IBusinessException`
+  - `HttpStatusCode StatusCode`, optional `ErrorCode`
+- `IDomainException : IBusinessException`
+
+Provided domain exception classes:
+
+- `DomainNotImplementedException` (`422 UnprocessableContent`)
+- `EntityNotFoundException` (`404 NotFound`)
+- `EntityValidationException` (`400 BadRequest`, includes `Failures`)
+- `EntityPersistenceException` (`409 Conflict`)
+- `TenantMissingInContextException` (`403 Forbidden`)
+
+Error code defaults are configurable globally through `DomainErrorCodeRegistry`.
+
+## Extension helpers
+
+- `EntityExtensions.Attach(...)`
+  - Adds an entity to an `ICollection<T>` and marks `DomainStatus.IsAdded`
+- `ServiceProviderExtensions.InheritAsyncServiceScope(...)`
+  - Builds `ScopeContext` from current user/tenant/aborted token services and initializes a new async scope
+
+Note: `ServiceProviderExtensions` is declared in namespace `Phymnary.SugarPot.AspNetCore.Api.Extensions`.
 
 ## Installation
 
-`dotnet add package Phymnary.SugarPot.AspNetCore.Domain`
+NuGet:
 
-## Quick usage
+```bash
+dotnet add package Phymnary.SugarPot.AspNetCore.Domain
+```
 
-### Entity model
+## Usage examples
+
+### Define an entity
 
 ```csharp
 using Phymnary.SugarPot.AspNetCore.Entities;
 
-public sealed class User : Entity<Guid>
+public sealed class User : Entity<Guid>, ISoftDelete
 {
-    public User(Guid id) : base(id)
-    {
-    }
+    public User(Guid id) : base(id) { }
 
     public string Name { get; set; } = string.Empty;
+
+    public Guid? DeletedById { get; set; }
+
+    public DateTimeOffset? DeletedAt { get; set; }
 }
 ```
 
-### Repository contract
+### Attach child entity and mark as added
 
 ```csharp
-using Phymnary.SugarPot.AspNetCore.Repositories;
+using Phymnary.SugarPot.AspNetCore.Entities;
+using Phymnary.SugarPot.AspNetCore.Extensions;
 
-public sealed class UserService(IRepository<User, Guid> users)
-{
-    public Task<User> GetAsync(Guid id, CancellationToken cancellationToken)
-        => users.GetAsync(id, cancellationToken: cancellationToken);
+var addresses = new List<Address>();
+var address = addresses.Attach(new Address(Guid.NewGuid()));
 
-    public Task<List<User>> SearchAsync(string keyword, CancellationToken cancellationToken)
-        => users.QueryAsync(
-            x => x.Name.Contains(keyword),
-            cancellationToken: cancellationToken
-        );
-}
+// address.DomainStatus.IsAdded == true
 ```
 
-### Entity validation contract
+### Implement entity validation
 
 ```csharp
 using Phymnary.SugarPot.AspNetCore.Entities;
@@ -87,58 +181,49 @@ public sealed class UserValidator : IEntityValidator<User>
 {
     public ValueTask<EntityValidationResult> ValidateAsync(
         User entity,
-        CancellationToken cancellationToken = default
-    )
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(entity.Name))
         {
-            return ValueTask.FromResult(
-                new EntityValidationResult
-                {
-                    IsValid = false,
-                    Errors =
-                    [
-                        new EntityValidationFailureDetail
-                        {
-                            Property = nameof(User.Name),
-                            Message = "Name is required"
-                        }
-                    ]
-                }
-            );
+            return ValueTask.FromResult(new EntityValidationResult
+            {
+                IsValid = false,
+                Errors =
+                [
+                    new EntityValidationFailureDetail
+                    {
+                        Property = nameof(User.Name),
+                        Message = "Name is required",
+                        Code = "USR_NAME_REQUIRED"
+                    }
+                ]
+            });
         }
 
-        return ValueTask.FromResult(
-            new EntityValidationResult
-            {
-                IsValid = true,
-                Errors = []
-            }
-        );
+        return ValueTask.FromResult(EntityValidationResult.Valid);
     }
 }
 ```
 
-## Layering guidance
+### Throw standardized domain exceptions
 
-- Keep this package for domain contracts and types only.
-- Implement repositories, query providers, transactions, and resilient strategies in infrastructure packages.
-- Provide `ICurrentUser`, `ICurrentTenant`, `IRunAt`, and `IAbortedToken` implementations at runtime (for example, via ASP.NET Core host/infrastructure layers).
+```csharp
+using Phymnary.SugarPot.AspNetCore.Exceptions;
 
-## Target frameworks
+throw new EntityNotFoundException("User not found")
+    .WithErrorCode("USR_NOT_FOUND");
+```
 
-This library targets multiple frameworks to support a range of consumers:
+## Design intent
 
-- net8.0
-- net9.0
-- net10.0
+- Keep this package implementation-agnostic.
+- Place EF Core, database, messaging, and host-specific logic in other packages.
+- Use these contracts to keep domain and application layers stable and testable.
 
-Check the project file for exact target monikers if you need to add or change supported TFMs.
+## Build metadata
 
-## Contributing
-
-Contributions, bug reports and feature requests are welcome. Please open issues or pull requests on the repository.
+Version is provided via `$(AspPackedVersion)` from the parent build configuration.
 
 ## License
 
-See the repository root for license information.
+See the repository root for license details.

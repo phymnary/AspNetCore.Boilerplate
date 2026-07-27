@@ -18,7 +18,7 @@ public static class WebApplicationBuilderExtensions
 {
     public static string SubClaimName { get; set; } = "sub";
 
-    public static string TenantClaimName { get; set; } = "tenant";
+    public static string TenantClaimName { get; set; } = "tid";
 
     public static WebApplication UseBoilerplateServices(this WebApplication app)
     {

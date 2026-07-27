@@ -1,88 +1,69 @@
 # Phymnary.SugarPot.AspNetCore.Api
 
-ASP.NET Core API utilities for SugarPot, including endpoint abstractions, runtime web helpers, and a Roslyn-based endpoint source generator.
+ASP.NET Core API primitives and runtime helpers for SugarPot.
 
-This project works together with Phymnary.SugarPot.AspNetCore.Api.Roslyn to reduce boilerplate for minimal APIs by generating endpoint mapping code from attributes and analyzers.
+This package provides:
 
-## Table of contents
-
-- Features
-- Source generator (Api.Roslyn)
-- Installation
-- Getting started
-- Group route configuration
-- Manual endpoint mapping
-- Runtime claims mapping
-- Notes & troubleshooting
-- Target frameworks
-- Contributing
-- License
-
-## Features
-
-- Endpoint abstraction via `IEndpoint`
-- Attribute-driven endpoint generation with `[Endpoint]`
-- Group route pattern support with `[RoutePattern]`
-- Group/endpoint route builder customization with `[RouteBuilder]`
-- API schema grouping with `[ApiSchema]`
-- Runtime mapping helpers: `MapEndpoint<TEndpoint>()`, `AddBoilerplateServices()`, `UseBoilerplateServices()`
-- Built-in HTTP-context based providers: `ICurrentUser`, `ICurrentTenant`, `IAbortedToken`
-- Exception handling integration (`AspExceptionHandler`, ProblemDetails)
-
----
-
-## Source Generator: Api.Roslyn
-
-The companion generator project (`Phymnary.SugarPot.AspNetCore.Api.Roslyn`) provides:
-
-- Incremental source generator for endpoint mapping code
-- Analyzer diagnostics to validate endpoint contracts
-
-### What it generates
-
-For classes marked with `[Endpoint]`, the generator emits code that:
-
-- implements endpoint mapping based on HTTP method and route pattern
-- uses `HandleAsync` as the handler method
-- applies route customization from endpoint-level `BuildRoute(...)` or nearest group `[RouteBuilder]` method
-
-For classes marked with `[ApiSchema]`, it emits schema mapping entry points that map discovered endpoints.
-
-### Current diagnostic
-
-- `SPAPI001` — Missing `HandleAsync` method for `[Endpoint]` classes.
-
-### Packaging note
-
-When this package is produced as a NuGet package the Roslyn analyzer/generator assembly is placed under `analyzers/dotnet/cs` so consumers receive generator functionality automatically when the package is referenced.
-
----
+- Endpoint abstractions for minimal API mapping.
+- Attribute contracts used by the companion Roslyn generator.
+- Request-context bindings for current user, current tenant, and aborted token.
+- A JSON exception handler compatible with ASP.NET Core exception handling middleware.
 
 ## Installation
 
-`dotnet add package Phymnary.SugarPot.AspNetCore.Api`
+```bash
+dotnet add package Phymnary.SugarPot.AspNetCore.Api
+```
 
-## Getting started
+## What Is Included
 
-### 1) Register runtime services
+- `IEndpoint`: endpoint abstraction that returns a `RouteHandlerBuilder`.
+- `MapEndpoint<TEndpoint>()`: maps endpoint classes to an `IEndpointRouteBuilder`.
+- `[Endpoint]`, `[RoutePattern]`, `[RouteBuilder]`, `[ApiSchema]`: attributes consumed by the companion generator/analyzers.
+- `AddApiServices()`: registers default API-scoped runtime providers.
+- `UseBoilerplateServices()`: binds user, tenant, and aborted token data from `HttpContext`.
+- `AddBoilerplateExceptionHandler()`: registers `AspExceptionHandler` and `ProblemDetails` services.
+
+## Quick Start
+
+### 1) Register services
 
 ```csharp
 using Phymnary.SugarPot.AspNetCore.Extensions;
 
-builder.Services.AddApiServices().AddBoilerplateExceptionHandler();
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services
+    .AddApiServices()
+    .AddBoilerplateExceptionHandler();
 ```
 
-### 2) Add middleware
+### 2) Build app and enable middleware
 
 ```csharp
 var app = builder.Build();
+
+app.UseExceptionHandler();
 app.UseBoilerplateServices();
 ```
 
-### 3) Create an endpoint (generator will produce mapping)
+### 3) Map endpoint
+
+```csharp
+using Phymnary.SugarPot.AspNetCore.Api.Extensions;
+
+app.MapEndpoint<GetHealth>();
+
+app.Run();
+```
+
+## Endpoint Pattern
+
+Use `[Endpoint]` on a partial class and provide members expected by the generator (for example `HandleAsync`, optional `RoutePattern`, optional `BuildRoute`).
 
 ```csharp
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Phymnary.SugarPot.AspNetCore.Api;
 
 [Endpoint(Method.Get)]
@@ -102,11 +83,16 @@ public partial class GetHealth
 }
 ```
 
----
+Notes:
 
-## Group Route Configuration
+- `MapEndpoint<TEndpoint>()` supports:
+  - `where TEndpoint : class, IEndpoint, new()` (activates via `new()`).
+  - `where TEndpoint : class, IEndpoint` with a provided `IServiceProvider` (resolves from DI).
+- If an endpoint also implements `IExtendRouteBuilder`, its `Extend(...)` hook runs after route mapping.
 
-You can define namespace-level static route helpers and apply them to endpoint groups.
+## Group Route Configuration Attributes
+
+Use shared static methods to decorate groups of endpoints.
 
 ### Shared route pattern
 
@@ -140,59 +126,74 @@ public static class UserRouteBuilderConfig
 }
 ```
 
-Endpoint-local `RoutePattern` property and `BuildRoute` method override group defaults.
+Per-endpoint `RoutePattern` and `BuildRoute` members override group-level behavior.
 
----
+## Runtime Request Context Binding
 
-## Manual Endpoint Mapping
+`UseBoilerplateServices()` populates scoped services from each request:
 
-If you prefer not to use the generator you can map endpoints manually:
+- `IAbortedToken`: set from `HttpContext.RequestAborted`.
+- `ICurrentUser.Id`: parsed from user claim named `sub` by default.
+- `ICurrentTenant.Id`: parsed from user claim named `tid` by default.
+
+Customize claim names through static properties:
 
 ```csharp
-using Phymnary.SugarPot.AspNetCore.Api.Extensions;
+using Phymnary.SugarPot.AspNetCore.Extensions;
 
-app.MapEndpoint<GetHealth>();
+WebApplicationBuilderExtensions.SubClaimName = "sub";
+WebApplicationBuilderExtensions.TenantClaimName = "tenant";
 ```
 
----
+## Exception Handling
 
-## Runtime Claims Mapping
+`AddBoilerplateExceptionHandler()` configures:
 
-`UseBoilerplateServices()` maps claims to scoped providers:
+- `AddProblemDetails()`.
+- `AddExceptionHandler<AspExceptionHandler>()`.
 
-- `SubClaimName` (default: `"sub"`) -> `ICurrentUser.Id`
-- `TenantClaimName` (default: `"tenant"`) -> `ICurrentTenant.Id`
+`AspExceptionHandler` behavior:
 
-Claim names can be customized via `WebApplicationBuilderExtensions.SubClaimName` and `WebApplicationBuilderExtensions.TenantClaimName`.
+- Maps `IBusinessException` to its `StatusCode` and `ErrorCode`.
+- Handles `EntityValidationException` and includes validation failures.
+- Falls back to HTTP 500 for unexpected exceptions.
+- Writes JSON payload:
 
----
+```json
+{
+  "error": {
+    "message": "...",
+    "code": "...",
+    "detail": "...",
+    "invalidParameters": []
+  }
+}
+```
 
-## Notes & troubleshooting
+If `IAspErrorMessageProvider` is registered, it is used to resolve localized/user-friendly messages by error code.
 
-- `[Endpoint]` classes must provide a `HandleAsync` method (see `SPAPI001` diagnostic).
-- HTTP method resolution order: attribute (`[Endpoint(Method.X)]`), class name prefix (`Get*`, `Post*`, etc.), namespace suffix (`.get`, `.post`, etc.).
-- Keep endpoint classes `partial` to align with generated partial output.
+## Utility Helpers
 
-### Troubleshooting:
+`GetRoutePatternBasedOnNamespace<TEndpoint>(root, prefix)` converts endpoint namespace segments into kebab-case route segments and supports dynamic segments wrapped by underscores.
 
-- If generator diagnostics do not appear, ensure the consuming project references the package that contains the analyzer (or adds the analyzer project as an analyzer during development).
-- If mapping is not generated, confirm the endpoint class is public/partial and follows the required shape for `HandleAsync`.
+Example segment conversion:
 
-## Target frameworks
+- Namespace segment `Orders` -> `orders`
+- Namespace segment `_Id_` -> `{id}`
 
-This library is built to support multiple TFMs commonly used in the solution. Typical TFMs:
+## Source Generator Packaging
 
-- net8.0
-- net9.0
-- net10.0
+In release packaging, the companion Roslyn assembly is packed into `analyzers/dotnet/cs`, so consumers receive analyzer/source-generator behavior automatically through the NuGet package.
 
-Check the project file for exact TFMs.
+## Target Frameworks
 
----
+Build outputs in this project currently include:
 
-## Contributing
+- `net8.0`
+- `net9.0`
+- `net10.0`
 
-Contributions, bug reports and feature requests are welcome. Please open issues or pull requests on the repository.
+Final target framework values are defined by project/solution build properties.
 
 ## License
 
