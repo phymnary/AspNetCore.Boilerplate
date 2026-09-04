@@ -38,7 +38,7 @@ public abstract class EfRepository<TDbContext, TEntity>(
         return queryable;
     }
 
-    private async ValueTask ValidateAsync(TEntity entity, CancellationToken ct)
+    protected async ValueTask ValidateAndThrowAsync(TEntity entity, CancellationToken ct)
     {
         if (options.Validator is null)
             return;
@@ -79,7 +79,7 @@ public abstract class EfRepository<TDbContext, TEntity>(
     {
         var ct = GetRequestAborted(cancellationToken);
 
-        await ValidateAsync(entity, ct);
+        await ValidateAndThrowAsync(entity, ct);
 
         var inserted = DbSet.Add(entity).Entity;
 
@@ -107,11 +107,11 @@ public abstract class EfRepository<TDbContext, TEntity>(
                     "Must provide update function in EfUpdateOptions"
                 );
             _updateOptions.Update(entity, upsert);
-            await ValidateAsync(upsert, ct);
+            await ValidateAndThrowAsync(upsert, ct);
         }
         else
         {
-            await ValidateAsync(entity, ct);
+            await ValidateAndThrowAsync(entity, ct);
             upsert = await InsertAsync(entity, false, ct);
         }
 
@@ -127,7 +127,7 @@ public abstract class EfRepository<TDbContext, TEntity>(
     )
     {
         var ct = GetRequestAborted(cancellationToken);
-        await ValidateAsync(entity, ct);
+        await ValidateAndThrowAsync(entity, ct);
 
         return await SaveChangesAsync(ct);
     }
